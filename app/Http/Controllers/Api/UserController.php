@@ -4,33 +4,31 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use App\Models\User;
 
 class UserController extends Controller
 {
     public function users(Request $request){
         $name = $request->name;
-        $users = User::get();
+        if($name){
+            $users = User::where('name', 'LIKE', "%$name%")->get();
+        }else $users = User::get();
         return response()->json(['users'=>$users], 200);
     }
 
     public function userStore(Request $request){
-        $validate = $request->validate(
-            [
+        $validator = \Validator::make($request->all(), [
+                'email' => 'required|email|unique:users',
                 'name' => 'required',
-                'email' => 'required|email',
-                'date_of_birth' => 'required|date'
-            ],
-            [
-                'name.required' => 'Please provide an Name',
-                'email.required' => 'Please provide an E-mail',
-                'email.email' => 'Please provide a valid Email',
-                'date_of_birth.required' => 'Please provide a Date of birth'
-            ]
-        );
+            
+            ]);
 
-        $hasUser = User::where(['email'=>$request->email])->first();
-        if($hasUser) return response()->json(['message'=> 'This email already used'], 409);
+        if ($validator->fails()) {
+            $responseArr['message'] = $validator->errors();
+            return response()->json($responseArr, Response::HTTP_BAD_REQUEST);
+        }
+
 
         $store_data = new User();
         $store_data->name = $request->name;
@@ -46,6 +44,17 @@ class UserController extends Controller
     }
 
     public function userUpdate(Request $request){
+        $validator = \Validator::make($request->all(), [
+                'email' => 'required|email|unique:users',
+                'name' => 'required',
+            
+            ]);
+
+        if ($validator->fails()) {
+            $responseArr['message'] = $validator->errors();
+            return response()->json($responseArr, Response::HTTP_BAD_REQUEST);
+        }
+
         $update_data = User::find($request->id);
         
         if(!$update_data) return response()->json(['message'=> 'User not found'], 404);
